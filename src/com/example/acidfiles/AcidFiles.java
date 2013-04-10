@@ -6,8 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-
+import java.util.Locale;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
@@ -24,120 +23,140 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-
 public class AcidFiles extends ListActivity {
 	public static MediaPlayer mPlayer = null;
+	private String CURRENT_DIRECTORY;
+	private List<String> items = null;
 
-	 private List<String> items = null;
-	    
-	    @Override
-	    public void onCreate(Bundle icicle) {
-	        super.onCreate(icicle);
-	        setContentView(R.layout.activity_view_tran);
-	        getFiles(new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/").listFiles());
-	    }
-	    @Override
-	    protected void onListItemClick(ListView l, View v, int position, long id){
-	    	String item1 = (String) getListAdapter().getItem(position);
-    		File files = new File(item1);
-    		Uri my = Uri.fromFile(files);
-	    	
-	        int selectedRow = (int)id;
-	        if(selectedRow == 0){
-	            getFiles(new File("/").listFiles());
+	@Override
+	public void onCreate(Bundle icicle) {
+		super.onCreate(icicle);
 
-	        }else{
-	      		
-        
-        		
-        		
-        		if(item1.endsWith(".apk") || item1.endsWith(".APK")){
-        			Intent intent = new Intent(); 
-        			intent.setAction(android.content.Intent.ACTION_VIEW); 
-        			intent.setDataAndType(Uri.fromFile(files),"application/vnd.android.package-archive"); 
-        			startActivity(intent); 
-        		
-		                
-	            	}else{
-	            		if(mPlayer == null){
-	            			mPlayer = MediaPlayer.create(this, my);
-	            		}
-	            		if(item1.endsWith(".mp3") || item1.endsWith(".MP3")){
-	            			if(mPlayer.isPlaying()){
-		            			mPlayer.pause();}else{
-	            			if(mPlayer.isPlaying() == false){
-	            		mPlayer.start();}  
-	            			
-	            		
-	            				
-		            			}
-	            			 } else{
-	            		
-       			 File file = new File(items.get(selectedRow));
-	         	            if(file.isDirectory()){
-	         	                getFiles(file.listFiles());	 
-	         	            }else{
-	         	            	if(file.isFile()){
-	         	            		
-	         	            		 String item = (String) getListAdapter().getItem(position);
-	         	            		
-	         	            		
-	         		               
-	         		           
-	         		                File f = new File(item);
-	         		                
+		/* We want to start out at the root of the sdcard */
+		CURRENT_DIRECTORY = Environment.getExternalStorageDirectory()
+				.getAbsolutePath();
 
-	         		                StringBuilder text = new StringBuilder();
+		if (!CURRENT_DIRECTORY.endsWith("/"))
+			CURRENT_DIRECTORY += "/";
 
-	         		                try {
-	         		                    BufferedReader br = new BufferedReader(new FileReader(f));
-	         		                    String line;
+		setContentView(R.layout.activity_view_tran);
+		getFiles(new File(CURRENT_DIRECTORY).listFiles());
+	}
 
-	         		                    while ((line = br.readLine()) != null) {
-	         		                        text.append(line);
-	         		                        text.append('\n');
-	         		                    } br.close();
-	         		                }
-	         		                catch (IOException e) {
-	         		                	
-	         		                }
-	         	            	
-	         		                new AlertDialog.Builder(this).setMessage(text).show();
-	         	            	
-	            		}else{
-	                 new AlertDialog.Builder(this)
-	                 .setTitle("This file is not a directory")
-	                 .setNeutralButton("OK", new DialogInterface.OnClickListener(){
-	                     public void onClick(DialogInterface dialog, int button){
-	                         //do nothing
-	                     }
-	                 })
-	                 .show();
-	            }
-	        }
-	         	            }
-	    }}
-	            		}
-	            		
-	        
-	    
-	    
-	    
-	    
-	  
-	    
-	    private void getFiles(File[] files){
-	        items = new ArrayList<String>();
-	        items.add(getString(R.string.ok));
-	        for(File file : files){
-	            items.add(file.getPath());
-	        }
-	        ArrayAdapter<String> fileList = new ArrayAdapter<String>(this,R.layout.textview, items);
-	        setListAdapter(fileList);
-	        
-	    }
-	
-	 
+	@Override
+	protected void onListItemClick(ListView l, View v, int position, long id) {
+		String item_path;
+		File current_file;
+		Uri uri;
+
+		/* Always make sure we have a forward slash */
+		if (!CURRENT_DIRECTORY.endsWith("/"))
+			CURRENT_DIRECTORY += "/";
+
+		item_path = (String) getListAdapter().getItem(position);
+		item_path = CURRENT_DIRECTORY + item_path;
+		current_file = new File(item_path);
+		uri = Uri.fromFile(current_file);
+
+		int selectedRow = (int) id;
+		if (selectedRow == 0) {
+			/* The "back" option */
+			String target_path = current_file.getParentFile().getParent();
+			if (target_path == null)
+				target_path = "/";
+
+			CURRENT_DIRECTORY = target_path;
+
+			if (!(CURRENT_DIRECTORY == "/")) {
+				/* Make sure that we're not trying to go back at the root dir */
+				getFiles(new File(CURRENT_DIRECTORY).listFiles());
+			}
+		} else {
+			if (item_path.toLowerCase(Locale.US).endsWith(".apk")) {
+				Intent intent = new Intent();
+				intent.setAction(android.content.Intent.ACTION_VIEW);
+				intent.setDataAndType(Uri.fromFile(current_file),
+						"application/vnd.android.package-archive");
+				startActivity(intent);
+
+			} else if (item_path.toLowerCase(Locale.US).endsWith(".mp3")) {
+				if (mPlayer == null) {
+					mPlayer = MediaPlayer.create(this, uri);
+				}
+				if (mPlayer.isPlaying()) {
+					/* The mp3 is playing, so we pause it */
+					mPlayer.pause();
+				} else {
+					/* If not we start it */
+					mPlayer.start();
+				}
+			} else {
+				File file = new File(CURRENT_DIRECTORY + items.get(selectedRow));
+				if (file.isDirectory()) {
+					/* We want to list the directory */
+					CURRENT_DIRECTORY = file.getPath();
+					getFiles(file.listFiles());
+				} else {
+					if (file.isFile()) {
+						StringBuilder text = new StringBuilder();
+
+						try {
+							BufferedReader br = new BufferedReader(
+									new FileReader(current_file));
+							String line;
+
+							while ((line = br.readLine()) != null) {
+								text.append(line);
+								text.append('\n');
+							}
+							br.close();
+						} catch (IOException e) {
+						}
+
+						new AlertDialog.Builder(this).setMessage(text).show();
+
+					} else {
+						new AlertDialog.Builder(this)
+								.setTitle("This file is not a directory")
+								.setNeutralButton("OK",
+										new DialogInterface.OnClickListener() {
+											public void onClick(
+													DialogInterface dialog,
+													int button) {
+												// do nothing
+											}
+										}).show();
+					}
+				}
+			}
+		}
+	}
+
+	private void getFiles(File[] files) {
+		String file_path = "";
+
+		items = new ArrayList<String>();
+		items.add(getString(R.string.ok));
+
+		for (File file : files) {
+			file_path = file.getPath();
+
+			if (file_path.startsWith(CURRENT_DIRECTORY)) {
+				/* Remove the path from the string */
+				file_path = file_path.substring(CURRENT_DIRECTORY.length());
+			}
+
+			if (file_path.startsWith("/")) {
+				/* Remove the leading forward slash */
+				file_path = file_path.substring(1);
+			}
+
+			items.add(file_path);
+		}
+		ArrayAdapter<String> fileList = new ArrayAdapter<String>(this,
+				R.layout.textview, items);
+		setListAdapter(fileList);
+	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
