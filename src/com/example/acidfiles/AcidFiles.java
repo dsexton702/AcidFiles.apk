@@ -91,13 +91,20 @@ public class AcidFiles extends ListActivity {
 					mPlayer.start();
 				}
 			} else {
-				File file = new File(CURRENT_DIRECTORY + items.get(selectedRow));
-				if (file.isDirectory()) {
+				if (current_file.isDirectory()) {
 					/* We want to list the directory */
-					CURRENT_DIRECTORY = file.getPath();
-					getFiles(file.listFiles());
+					if (current_file.listFiles() == null) {
+						/*
+						 * TODO: Write error handling for not being able to
+						 * access the directory.
+						 */
+						System.out.println("Cannot access directory");
+					} else {
+						CURRENT_DIRECTORY = current_file.getPath();
+						getFiles(current_file.listFiles());
+					}
 				} else {
-					if (file.isFile()) {
+					if (current_file.isFile()) {
 						StringBuilder text = new StringBuilder();
 
 						try {
