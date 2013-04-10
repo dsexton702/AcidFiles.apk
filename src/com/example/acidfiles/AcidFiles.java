@@ -46,22 +46,24 @@ public class AcidFiles extends ListActivity {
 	@Override
 	protected void onListItemClick(ListView l, View v, int position, long id) {
 		String item_path;
+		String target_path;
 		File current_file;
-		Uri uri;
+		Uri current_file_uri;
 
 		/* Always make sure we have a forward slash */
 		if (!CURRENT_DIRECTORY.endsWith("/"))
 			CURRENT_DIRECTORY += "/";
 
+		/* Initialize variables */
 		item_path = (String) getListAdapter().getItem(position);
 		item_path = CURRENT_DIRECTORY + item_path;
 		current_file = new File(item_path);
-		uri = Uri.fromFile(current_file);
+		current_file_uri = Uri.fromFile(current_file);
 
 		int selectedRow = (int) id;
 		if (selectedRow == 0) {
 			/* The "back" option */
-			String target_path = current_file.getParentFile().getParent();
+			target_path = current_file.getParentFile().getParent();
 			if (target_path == null)
 				target_path = "/";
 
@@ -75,14 +77,15 @@ public class AcidFiles extends ListActivity {
 			if (item_path.toLowerCase(Locale.US).endsWith(".apk")) {
 				Intent intent = new Intent();
 				intent.setAction(android.content.Intent.ACTION_VIEW);
-				intent.setDataAndType(Uri.fromFile(current_file),
+				intent.setDataAndType(current_file_uri,
 						"application/vnd.android.package-archive");
 				startActivity(intent);
 
 			} else if (item_path.toLowerCase(Locale.US).endsWith(".mp3")) {
-				if (mPlayer == null) {
-					mPlayer = MediaPlayer.create(this, uri);
-				}
+				/* TODO: Add ability to switch tracks */
+				if (mPlayer == null)
+					mPlayer = MediaPlayer.create(this, current_file_uri);
+
 				if (mPlayer.isPlaying()) {
 					/* The mp3 is playing, so we pause it */
 					mPlayer.pause();
